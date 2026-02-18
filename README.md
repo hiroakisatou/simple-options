@@ -11,7 +11,7 @@ A small Ruby library for parsing command-line flags (short and long options with
 After building the gem (`gem build simple-cli-options.gemspec` in the repo), install and require:
 
 ```bash
-gem install simple-cli-options-0.1.0.gem
+gem install simple-cli-options-0.1.1.gem
 ```
 
 ```ruby

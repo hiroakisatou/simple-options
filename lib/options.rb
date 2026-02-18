@@ -37,8 +37,10 @@ class Options
     end
   end
 
-  sig { params(argv: T::Array[String]).void }
-  def parse!(argv)
+  sig { params(argv: T.nilable(T::Array[String])).void }
+  def parse!(argv = nil)
+    argv = T.let(argv || ARGV, T::Array[String])
+
     if argv.include?('-h') || argv.include?('--help')
       show_help
       exit 0

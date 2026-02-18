@@ -90,6 +90,71 @@ RSpec.describe Options do
     end
   end
 
+  describe 'parsing argv built from a command-line string' do
+    before do
+      allow(Kernel).to receive(:exit) { |code = 0| raise SystemExit, code }
+    end
+
+    it 'parses long flags from a single string (as if from shell)' do
+      opts = Options.new
+      opts.add opt_length
+      opts.add opt_width
+      argv = '--length 10 --width 5'.split
+      opts.parse!(argv)
+      expect(opts.get(:length)).to eq 10.0
+      expect(opts.get(:width)).to eq 5.0
+    end
+
+    it 'parses short flags from a command-line string' do
+      opts = Options.new
+      opts.add opt_length
+      opts.add opt_width
+      argv = '-l 3 -w 4'.split
+      opts.parse!(argv)
+      expect(opts.get(:length)).to eq 3.0
+      expect(opts.get(:width)).to eq 4.0
+    end
+
+    it 'parses mixed short and long from a string' do
+      opts = Options.new
+      opts.add opt_length
+      opts.add opt_width
+      argv = '--length 7 -w 2'.split
+      opts.parse!(argv)
+      expect(opts.get(:length)).to eq 7.0
+      expect(opts.get(:width)).to eq 2.0
+    end
+
+    it 'parses values with spaces when argv is pre-split (e.g. from shell)' do
+      opts = Options.new
+      opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Name')
+      argv = ['--name', 'Alice Bob']
+      opts.parse!(argv)
+      expect(opts.get(:name)).to eq 'Alice Bob'
+    end
+
+    it 'uses ARGV by default when no argument is given' do
+      opts = Options.new
+      opts.add opt_length
+      opts.add opt_width
+
+      stub_const('ARGV', %w[--length 12 --width 8])
+      opts.parse!
+
+      expect(opts.get(:length)).to eq 12.0
+      expect(opts.get(:width)).to eq 8.0
+    end
+
+    it 'triggers help when argv string contains --help' do
+      opts = Options.new(description: 'App')
+      opts.add Option.new(:x, short: '-x', long: '--x', desc: 'X')
+      argv = '--help'.split
+      expect { opts.parse!(argv) }.to raise_error(SystemExit) do |e|
+        expect(e.status).to eq 0
+      end
+    end
+  end
+
   describe '#show_help' do
     it 'prints usage and flags' do
       opts = Options.new(description: 'Test app')
