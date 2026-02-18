@@ -40,10 +40,26 @@ class Option
 
     # バリデーションは追加(Array)可能、変換は上書き
     # 各バリデータは、成功時に nil、失敗時にエラーメッセージ(String)を返す想定
-    @validators = T.let(
-      [options[:validate]].compact,
+    raw_validators = options[:validate]
+    validators = T.let(
+      [],
       T::Array[T.proc.params(arg0: String).returns(T.nilable(String))]
     )
+
+    unless raw_validators.nil?
+      case raw_validators
+      when Proc
+        validators << raw_validators
+      when Array
+        raw_validators.each do |v|
+          validators << v
+        end
+      else
+        raise ArgumentError, "validate must be a Proc or an Array of Procs"
+      end
+    end
+
+    @validators = validators
     @converter  = T.let(options[:convert] || ->(v) { v }, T.proc.params(arg0: String).returns(T.untyped))
   end
 
