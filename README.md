@@ -1,8 +1,23 @@
-# simple-options
+# simple-cli-options
 
 A small Ruby library for parsing command-line flags (short and long options with values). Define options with validation and conversion, then parse `ARGV` and read values by name.
 
 ## Installation
+
+**Note:** This project is in **beta**. APIs may change in future releases.
+
+### From a built gem (beta)
+
+After building the gem (`gem build simple-cli-options.gemspec` in the repo), install and require:
+
+```bash
+gem install simple-cli-options-0.1.0.beta1.gem
+```
+
+```ruby
+require 'simple-cli-options'
+# Option and Options are now available
+```
 
 ### Without a gem (copy or clone)
 
@@ -24,7 +39,7 @@ Use the library as plain Ruby files. No gem packaging or Gemfile required.
    require_relative 'vendor/simple-options/lib/options'
    ```
 
-A gem may be published later for easier installation.
+A stable gem may be published to RubyGems.org later.
 
 ### With Bundler (optional)
 
