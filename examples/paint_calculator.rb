@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../options'
-require_relative '../option'
+require_relative '../lib/options'
+require_relative '../lib/option'
 
 opts = Options.new(description: "Paint Calculator for Hogan's Exercise")
 opts.add Option.new(:length, desc: 'Length of the room', short: '-l', long: '--length', required: true)

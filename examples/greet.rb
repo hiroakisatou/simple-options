@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../options'
-require_relative '../option'
+require_relative '../lib/options'
+require_relative '../lib/option'
 
 opts = Options.new(description: 'Print a greeting.')
 opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Name to greet', required: true)

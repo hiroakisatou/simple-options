@@ -8,20 +8,20 @@ A small Ruby library for parsing command-line flags (short and long options with
 
 Use the library as plain Ruby files. No gem packaging or Gemfile required.
 
-1. **Clone or download** the repo, or copy `option.rb` and `options.rb` into your project.
+1. **Clone or download** the repo, or copy the `lib/` folder (containing `option.rb` and `options.rb`) into your project.
 2. **Install the runtime dependency** (needed for type hints):
    ```bash
    gem install sorbet-runtime
    ```
 3. **Require the files** from your script (adjust paths if needed):
    ```ruby
-   require_relative 'option'
-   require_relative 'options'
+   require_relative 'lib/option'
+   require_relative 'lib/options'
    ```
-   If you keep the library in a subdirectory (e.g. `lib/simple-options/`):
+   If you keep the library in a subdirectory (e.g. `vendor/simple-options/`):
    ```ruby
-   require_relative 'lib/simple-options/option'
-   require_relative 'lib/simple-options/options'
+   require_relative 'vendor/simple-options/lib/option'
+   require_relative 'vendor/simple-options/lib/options'
    ```
 
 A gem may be published later for easier installation.
@@ -38,8 +38,8 @@ gem 'sorbet-runtime'
 ## Quick start
 
 ```ruby
-require_relative 'options'
-require_relative 'option'
+require_relative 'lib/options'
+require_relative 'lib/option'
 
 opts = Options.new(description: 'My CLI')
 opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Your name', required: true)
@@ -139,25 +139,36 @@ ruby examples/greet.rb --name World --count 2
 
 ### Running tests
 
-Tests use [RSpec](https://rspec.info/). The test setup is in `test_helper.rb` (loads the library and RSpec); `spec/spec_helper.rb` requires it, and each spec file requires `spec_helper`.
+Install dependencies, then run RSpec from the project root:
 
-1. **Install dependencies** (from the project root):
-   ```bash
-   bundle install
-   ```
-2. **Run all specs:**
-   ```bash
-   bundle exec rspec spec/
-   ```
-3. **Run a single spec file:**
-   ```bash
-   bundle exec rspec spec/option_spec.rb
-   bundle exec rspec spec/options_spec.rb
-   ```
-4. **Run with format** (e.g. documentation style):
-   ```bash
-   bundle exec rspec spec/ --format documentation
-   ```
+```bash
+bundle install
+bundle exec rspec spec/
+```
+
+### Using test_helper.rb in your own specs
+
+`test_helper.rb` loads RSpec and the library (`option.rb`, `options.rb`), so your specs can use `Option` and `Options` without requiring them yourself.
+
+- **Specs under `spec/`:** use `spec_helper`, which already requires `test_helper`:
+  ```ruby
+  # spec/my_feature_spec.rb
+  require_relative 'spec_helper'
+
+  RSpec.describe Option do
+    it 'does something' do
+      opt = Option.new(:x, short: '-x', long: '--x', desc: 'X')
+      expect(opt.process('value')).to eq 'value'
+    end
+  end
+  ```
+- **Specs elsewhere** (e.g. in your app): require `test_helper` by path so the library and RSpec are loaded:
+  ```ruby
+  require_relative '/path/to/simple-options/test_helper'
+  # Now Option, Options are available and RSpec is configured
+  ```
+
+Then run your spec with `bundle exec rspec path/to/your_spec.rb`.
 
 ### Linting
 

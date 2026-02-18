@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'rspec'
-require_relative 'option'
-require_relative 'options'
+require_relative 'lib/option'
+require_relative 'lib/options'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
