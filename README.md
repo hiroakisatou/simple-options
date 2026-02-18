@@ -137,8 +137,31 @@ ruby examples/greet.rb --name World --count 2
 
 ## Development
 
-- **Tests:** `bundle install` then `bundle exec rspec spec/`
-- **Linting:** RuboCop (and rubocop-performance, rubocop-rspec) are in the Gemfile.
+### Running tests
+
+Tests use [RSpec](https://rspec.info/). The test setup is in `test_helper.rb` (loads the library and RSpec); `spec/spec_helper.rb` requires it, and each spec file requires `spec_helper`.
+
+1. **Install dependencies** (from the project root):
+   ```bash
+   bundle install
+   ```
+2. **Run all specs:**
+   ```bash
+   bundle exec rspec spec/
+   ```
+3. **Run a single spec file:**
+   ```bash
+   bundle exec rspec spec/option_spec.rb
+   bundle exec rspec spec/options_spec.rb
+   ```
+4. **Run with format** (e.g. documentation style):
+   ```bash
+   bundle exec rspec spec/ --format documentation
+   ```
+
+### Linting
+
+RuboCop (and rubocop-performance, rubocop-rspec) are in the Gemfile. Run with `bundle exec rubocop`.
 
 ## License
 
