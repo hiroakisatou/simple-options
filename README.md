@@ -61,7 +61,7 @@ opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Your name', requi
 opts.add Option.new(:count, short: '-c', long: '--count', desc: 'Repeat count', required: false)
        .convert(&:to_i)
 
-opts.parse!(ARGV)
+opts.parse!
 puts "Hello, #{opts.get(:name)}!" * (opts.get(:count) || 1)
 ```
 
@@ -116,7 +116,7 @@ Collects options, parses an argument array, and provides access to parsed values
 opts = Options.new(description: 'Greeter')
 opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Your name', required: true)
 opts.add Option.new(:times, short: '-t', long: '--times', desc: 'Repeat N times').convert(&:to_i)
-opts.parse!(ARGV)
+opts.parse!
 name = opts.get(:name)       # required; parse! would have exited if missing
 times = opts.get(:times) || 1
 ```
