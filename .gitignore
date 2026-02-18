@@ -1,0 +1,13 @@
+/.bundle/
+/.ruby-lsp/
+/vendor/bundle
+*.gem
+*.rbc
+/.config
+/coverage/
+/spec/reports/
+*.lock
+Gemfile.lock
+*.swp
+*.swo
+.DS_Store
