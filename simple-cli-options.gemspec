@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = 'simple-cli-options'
-  spec.version       = '0.1.0.beta1'
+  spec.version       = '0.1.0'
   spec.authors       = ['HIROAKI SATOU']
   spec.email         = ['']
 
