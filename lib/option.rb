@@ -39,11 +39,15 @@ class Option
     validate_structure!
 
     # バリデーションは追加(Array)可能、変換は上書き
-    @validators = T.let([options[:validate]].compact, T::Array[T.proc.params(arg0: String).returns(T::Boolean)])
+    # 各バリデータは、成功時に nil、失敗時にエラーメッセージ(String)を返す想定
+    @validators = T.let(
+      [options[:validate]].compact,
+      T::Array[T.proc.params(arg0: String).returns(T.nilable(String))]
+    )
     @converter  = T.let(options[:convert] || ->(v) { v }, T.proc.params(arg0: String).returns(T.untyped))
   end
 
-  sig { params(block: T.proc.params(arg0: String).returns(T::Boolean)).returns(T.self_type) }
+  sig { params(block: T.proc.params(arg0: String).returns(T.nilable(String))).returns(T.self_type) }
   def validate(&block)
     @validators << block
     self
@@ -58,8 +62,20 @@ class Option
   sig { params(value: String).returns(T.untyped) }
   def process(value)
     @validators.each do |v|
-      raise "Validation failed for option '#{@name}' with value: #{value}" unless v.call(value)
+      msg = v.call(value)
+      next if msg.nil?
+
+      flags = [@short, @long].reject(&:empty?)
+      flags_part =
+        if flags.empty?
+          "option '#{@name}'"
+        else
+          "#{flags.join(' or ')} option"
+        end
+
+      raise ArgumentError, "#{msg} for #{flags_part}"
     end
+
     @converter.call(value)
   end
 

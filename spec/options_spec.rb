@@ -5,7 +5,7 @@ require_relative 'spec_helper'
 RSpec.describe Options do
   let(:opt_length) do
     Option.new(:length, short: '-l', long: '--length', desc: 'Length', required: true)
-          .validate { |v| v.to_f.positive? }
+          .validate { |v| v.to_f.positive? ? nil : 'Please input positive number' }
           .convert(&:to_f)
   end
 
@@ -69,6 +69,19 @@ RSpec.describe Options do
       expect { opts.parse!(%w[--width 5]) }.to raise_error(SystemExit) do |e|
         expect(e.status).to eq 1
       end
+    end
+
+    it 'prints validation error message and exits 1 when validation fails' do
+      opts = Options.new
+      # length must be positive
+      opts.add opt_length
+      allow(Kernel).to receive(:exit) { |code = 0| raise SystemExit, code }
+
+      expect do
+        expect { opts.parse!(%w[--length 0]) }.to raise_error(SystemExit) do |e|
+          expect(e.status).to eq 1
+        end
+      end.to output(/Please input positive number for -l or --length option/).to_stderr
     end
 
     it 'parses short flags' do

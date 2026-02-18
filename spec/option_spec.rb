@@ -52,10 +52,10 @@ RSpec.describe Option do
   describe '#validate' do
     it 'adds a custom validator and returns self' do
       opt = Option.new(:n, short: '-n', long: '--num', desc: 'Number')
-                   .validate { |v| v.to_i.positive? }
+                   .validate { |v| v.to_i.positive? ? nil : 'must be positive' }
       expect(opt.process('42')).to eq '42'
-      expect { opt.process('0') }.to raise_error(/Validation failed/)
-      expect { opt.process('-1') }.to raise_error(/Validation failed/)
+      expect { opt.process('0') }.to raise_error(ArgumentError, /must be positive/)
+      expect { opt.process('-1') }.to raise_error(ArgumentError, /must be positive/)
     end
   end
 
@@ -76,16 +76,22 @@ RSpec.describe Option do
   describe '#process' do
     it 'runs validators then converter' do
       opt = Option.new(:size, short: '-s', long: '--size', desc: 'Size',
-                       validate: ->(v) { %w[s m l].include?(v) })
+                       validate: ->(v) { %w[s m l].include?(v) ? nil : 'size must be one of s/m/l' })
                    .convert { |v| v.upcase }
       expect(opt.process('m')).to eq 'M'
-      expect { opt.process('x') }.to raise_error(/Validation failed/)
+      expect { opt.process('x') }.to raise_error(ArgumentError, /size must be one of s\/m\/l/)
     end
 
     it 'uses :validate option from initialize' do
-      opt = Option.new(:x, short: '-x', long: '--x', desc: 'X', validate: ->(v) { v == 'ok' })
+      opt = Option.new(
+        :x,
+        short: '-x',
+        long: '--x',
+        desc: 'X',
+        validate: ->(v) { v == 'ok' ? nil : 'must be ok' }
+      )
       expect(opt.process('ok')).to eq 'ok'
-      expect { opt.process('no') }.to raise_error(/Validation failed/)
+      expect { opt.process('no') }.to raise_error(ArgumentError, /must be ok/)
     end
   end
 end

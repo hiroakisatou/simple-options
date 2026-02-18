@@ -5,11 +5,11 @@ require_relative '../lib/option'
 
 opts = Options.new(description: "Paint Calculator for Hogan's Exercise")
 opts.add Option.new(:length, desc: 'Length of the room', short: '-l', long: '--length', required: true)
-               .validate { |v| v.to_f > 0 }
+               .validate { |v| v.to_f.positive? ? nil : 'Please input positive number' }
                .convert(&:to_f)
 
 opts.add Option.new(:width, desc: 'Width of the room', short: '-w', long: '--width', required: true)
-               .validate { |v| v.to_f > 0 }
+               .validate { |v| v.to_f.positive? ? nil : 'Please input positive number' }
                .convert(&:to_f)
 
 if __FILE__ == $0 && !ARGV.empty?

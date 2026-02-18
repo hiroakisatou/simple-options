@@ -51,7 +51,12 @@ class Options
       idx = argv.find_index { |arg| arg == opt.short || arg == opt.long }
 
       if idx && argv[idx + 1]
-        @values[opt.name] = opt.process(T.must(argv[idx + 1]))
+        begin
+          @values[opt.name] = opt.process(T.must(argv[idx + 1]))
+        rescue ArgumentError => e
+          warn "Error: #{e.message}"
+          exit 1
+        end
       elsif opt.required_flag
         warn "Error: Missing required option: #{opt.long.empty? ? opt.short : opt.long}"
         exit 1

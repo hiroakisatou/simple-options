@@ -11,7 +11,7 @@ A small Ruby library for parsing command-line flags (short and long options with
 After building the gem (`gem build simple-cli-options.gemspec` in the repo), install and require:
 
 ```bash
-gem install simple-cli-options-0.1.1.gem
+gem install simple-cli-options-0.1.2.gem
 ```
 
 ```ruby
@@ -77,7 +77,7 @@ Represents a single flag: short form (e.g. `-l`), long form (e.g. `--length`), d
 |-------------------|-------------|
 | `Option.new(name, short:, long:, desc:, required: false, **options)` | `name` (Symbol), `short` / `long` (String), `desc` (String). At least one of `short` or `long` must be non-empty. `options` may include `:validate` (callable) and `:convert` (callable). |
 | `#name`, `#short`, `#long`, `#desc`, `#required_flag` | Read-only attributes. |
-| `#validate(&block)` | Appends a validator (block takes a String, returns true/false). Returns `self`. |
+| `#validate(&block)` | Appends a validator (block takes a String, returns `nil` on success or an error message `String` on failure). Returns `self`. |
 | `#convert(&block)` | Sets the converter (block takes a String, returns the value to store). Returns `self`. |
 | `#process(value)` | Runs all validators on `value`, then the converter; returns the converted value. Raises if validation fails. |
 
@@ -85,10 +85,11 @@ Represents a single flag: short form (e.g. `-l`), long form (e.g. `--length`), d
 
 ```ruby
 opt = Option.new(:port, short: '-p', long: '--port', desc: 'Port number')
-             .validate { |v| (1..65535).cover?(v.to_i) }
+             .validate { |v| (1..65535).cover?(v.to_i) ? nil : 'Port must be between 1 and 65535' }
              .convert(&:to_i)
+
 opt.process('8080')  # => 8080
-opt.process('99999') # => raises
+opt.process('99999') # => raises ArgumentError, "Port must be between 1 and 65535 for -p or --port option"
 ```
 
 ### Options
@@ -99,7 +100,7 @@ Collects options, parses an argument array, and provides access to parsed values
 |--------|-------------|
 | `Options.new(description: '')` | Creates a parser. `description` is shown above usage in help. |
 | `#add(option)` | Registers an `Option`. |
-| `#parse!(argv)` | Parses `argv` (e.g. `ARGV`). If `-h` or `--help` is present, prints help and exits 0. Missing required options cause a warning and exit 1. Parsed values are stored by option name. |
+| `#parse!(argv)` | Parses `argv` (defaults to `ARGV` when omitted). If `-h` or `--help` is present, prints help and exits 0. Missing required options or validation failures print an error to stderr and exit 1. Parsed values are stored by option name. |
 | `#get(name)` | Returns the parsed value for the option named `name` (Symbol), or `nil` if not given. |
 | `#show_help` | Prints description, usage line, and all flags (short/long and description). |
 
@@ -107,6 +108,7 @@ Collects options, parses an argument array, and provides access to parsed values
 
 - Each option expects the next argument as its value (e.g. `--length 10`).
 - Help is built from the options you add; `-h` / `--help` are handled automatically.
+- Validators return `nil` on success or an error message string on failure; failed validation raises `ArgumentError` with a message like `"Please input positive number for -l or --length option"`. `parse!` catches it, prints `Error: <message>` to stderr, and exits 1.
 
 ## Usage examples
 
@@ -125,7 +127,7 @@ times = opts.get(:times) || 1
 
 ```ruby
 Option.new(:size, short: '-s', long: '--size', desc: 'Size (s/m/l)',
-           validate: ->(v) { %w[s m l].include?(v) })
+           validate: ->(v) { %w[s m l].include?(v) ? nil : 'Size must be one of s/m/l' })
       .convert(&:upcase)
 ```
 
