@@ -6,17 +6,20 @@ A small Ruby library for parsing command-line flags (short and long options with
 
 ## Design Philosophy
 
-This library was developed with the goal of **eliminating tight coupling between business logic and presentation layer** that exists in many Ruby CLI frameworks, by using **composition over inheritance**.
+This library was developed with a singular mission: to liberate the **Presentation Layer (CLI interactions)** from the rigid constraints of library internals. By choosing **composition over inheritance**, `simple-cli-options` ensures that your application remains in control of its own structure and logic.
 
-Many CLI frameworks require you to inherit from specific classes or use DSLs that define your entire application structure. This creates tight coupling between your business logic and CLI parsing logic, making testing and reuse difficult.
+### Escaping the "Inheritance Trap"
 
-`simple-cli-options` takes a different approach:
-- **No inheritance required**: Use it without modifying your existing classes
-- **Composition-based**: Instantiate an `Options` object and use it where needed
-- **Loose coupling**: Separate CLI parsing logic from business logic
-- **Flexible integration**: Easily integrate into existing applications
+Many Ruby CLI frameworks require you to inherit from a specific base class. While this might seem convenient at first, it creates a "Strict Binding" where your presentation logic becomes shackled to the library’s internal implementation. This leads to several critical issues that `simple-cli-options` intentionally avoids:
 
-This makes CLI tool development simpler and more maintainable.
+* **No Inheritance Trap:** Your CLI logic is no longer forced to conform to the "hidden rules" of a parent class. This prevents the library's internal evolution from accidentally breaking your application's behavior.
+* **Decoupled Presentation Layer:** We treat CLI interaction as a distinct presentation layer. By avoiding inheritance, we ensure this layer remains independent and isn't "fused" with the library’s parsing engine.
+* **Dependency Minimization:** In this model, the library is a **tool**, not a **foundation**. You use it when and where you need it, rather than building your entire application inside it. This significantly reduces your long-term dependency on the library’s specific versioning or quirks.
+* **True Implementation Freedom:** Without the "gravity" of a parent class pulling your design in a certain direction, you are free to organize your CLI interactions in a way that best serves your users, not the framework.
+
+### The Goal: A Lightweight, Reliable Tool
+
+`simple-cli-options` is built for developers who want a powerful parser without the "contractual baggage" of a framework. It provides the **strictness of type-safe parsing** (via Sorbet) and the **flexibility of Ruby**, all while keeping your presentation layer clean, independent, and future-proof.
 
 ## Version History
 
