@@ -18,6 +18,12 @@ Many CLI frameworks require you to inherit from specific classes or use DSLs tha
 
 This makes CLI tool development simpler and more maintainable.
 
+## Version History
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and breaking changes.
+
+**Current version: 0.2.1**
+
 ## Installation
 
 **Note:** This project is in **beta**. APIs may change in future releases.
@@ -27,7 +33,7 @@ This makes CLI tool development simpler and more maintainable.
 After building the gem (`gem build simple-cli-options.gemspec` in the repo), install and require:
 
 ```bash
-gem install simple-cli-options-0.1.3.gem
+gem install simple-cli-options-0.2.1.gem
 ```
 
 ```ruby

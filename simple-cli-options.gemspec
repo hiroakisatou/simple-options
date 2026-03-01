@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = 'simple-cli-options'
-  spec.version       = '0.1.3'
+  spec.version       = '0.2.1'
   spec.authors       = ['HIROAKI SATOU']
   spec.email         = ['']
 
@@ -12,13 +12,13 @@ Gem::Specification.new do |spec|
     Define options with short/long forms, then parse ARGV and read values by name.
     This gem is currently in BETA; APIs may change in future releases.
   DESC
-  spec.homepage      = 'https://github.com/hiroakisatou/simple-options'
+  spec.homepage = 'https://github.com/hiroakisatou/simple-options'
   spec.required_ruby_version = '>= 3.0.0'
-  spec.licenses      = ['MIT']
+  spec.licenses = ['MIT']
 
   spec.metadata['homepage_uri']    = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/hiroakisatou/simple-options'
-  spec.metadata['changelog_uri']  = 'https://github.com/hiroakisatou/simple-options/blob/main/README.md'
+  spec.metadata['changelog_uri'] = 'https://github.com/hiroakisatou/simple-options/blob/main/CHANGELOG.md'
 
   spec.files         = Dir['lib/**/*.rb']
   spec.require_paths = ['lib']
