@@ -1,6 +1,22 @@
 # simple-cli-options
 
-A small Ruby library for parsing command-line flags (short and long options with values). The way you define flags (short/long, description, validation, conversion) is inspired by [Cobra](https://github.com/spf13/cobra). Define options, then parse `ARGV` and read values by name.
+A small Ruby library for parsing command-line flags (short and long options with values). Inspired by Go's [flag package](https://pkg.go.dev/flag), this library provides a simple, composable approach to CLI option parsing without the complexity of subcommands.
+
+**Note:** This library does **not** support subcommands. It focuses on simple flag parsing for single-command CLI tools.
+
+## Design Philosophy
+
+This library was developed with the goal of **eliminating tight coupling between business logic and presentation layer** that exists in many Ruby CLI frameworks, by using **composition over inheritance**.
+
+Many CLI frameworks require you to inherit from specific classes or use DSLs that define your entire application structure. This creates tight coupling between your business logic and CLI parsing logic, making testing and reuse difficult.
+
+`simple-cli-options` takes a different approach:
+- **No inheritance required**: Use it without modifying your existing classes
+- **Composition-based**: Instantiate an `Options` object and use it where needed
+- **Loose coupling**: Separate CLI parsing logic from business logic
+- **Flexible integration**: Easily integrate into existing applications
+
+This makes CLI tool development simpler and more maintainable.
 
 ## Installation
 
@@ -53,104 +69,392 @@ gem 'sorbet-runtime'
 ## Quick start
 
 ```ruby
-require_relative 'lib/options'
-require_relative 'lib/option'
+require 'simple-cli-options'
 
-opts = Options.new(description: 'My CLI')
-opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Your name', required: true)
-opts.add Option.new(:count, short: '-c', long: '--count', desc: 'Repeat count', required: false)
-       .convert(&:to_i)
+# Instantiate an Options object
+parser = SimpleOptions::Options.new(
+  program_name: 'todo',
+  description: 'A simple todo list manager'
+)
 
-opts.parse!
-puts "Hello, #{opts.get(:name)}!" * (opts.get(:count) || 1)
+# Define options using type-specific methods
+parser.boolean(:list, desc: 'Show list of todos')
+parser.string(:add, desc: 'Add a new todo item')
+parser.integer(:delete, desc: 'Delete todo by ID')
+
+# Parse command-line arguments
+parser.parse
+
+# Get values
+if parser.get(:list)
+  puts "Showing todo list..."
+elsif parser.get(:add)
+  puts "Adding: #{parser.get(:add)}"
+elsif parser.get(:delete)
+  puts "Deleting todo ##{parser.get(:delete)}"
+end
 ```
 
-Running with `ruby app.rb -n Alice -c 3` prints `Hello, Alice!` three times. `-h` or `--help` prints usage and exits.
+**Usage examples:**
+```bash
+# Show help (automatically supported)
+ruby todo.rb -h
+
+# Show list
+ruby todo.rb -list
+
+# Add a new task
+ruby todo.rb -add "Buy groceries"
+
+# Delete a task
+ruby todo.rb -delete 3
+```
+
+Specifying `-h` or `--help` automatically displays help and exits.
 
 ## API reference
 
-### Option
+### SimpleOptions::Option
 
-Represents a single flag: short form (e.g. `-l`), long form (e.g. `--length`), description, and optional validation/conversion.
+Represents a single option with short form (e.g., `-l`), long form (e.g., `--length`), description, type, validation, and conversion.
 
-| Method / attribute | Description |
-|-------------------|-------------|
-| `Option.new(name, short:, long:, desc:, required: false, **options)` | `name` (Symbol), `short` / `long` (String), `desc` (String). At least one of `short` or `long` must be non-empty. `options` may include `:validate` (callable) and `:convert` (callable). |
-| `#name`, `#short`, `#long`, `#desc`, `#required_flag` | Read-only attributes. |
-| `#validate(&block)` | Appends a validator (block takes a String, returns `nil` on success or an error message `String` on failure). Returns `self`. |
-| `#convert(&block)` | Sets the converter (block takes a String, returns the value to store). Returns `self`. |
-| `#process(value)` | Runs all validators on `value`, then the converter; returns the converted value. Raises if validation fails. |
-
-**Example**
+#### Constructor
 
 ```ruby
-opt = Option.new(:port, short: '-p', long: '--port', desc: 'Port number')
+Option.new(name, desc:, short: '', long: '', required: false, default: nil, type: :string, **options)
+```
+
+- `name` (Symbol): Option name
+- `desc` (String): Description (required)
+- `short` (String): Short flag form (optional)
+- `long` (String): Long flag form (optional)
+- `required` (Boolean): Whether the flag is required (default: `false`)
+- `default`: Default value (optional)
+- `type` (Symbol): Type (`:integer`, `:number`, `:boolean`, `:string`)
+- `**options`: Additional options (`:validate`, `:convert`)
+
+**Important:** If both `short` and `long` are omitted, `-name` is automatically used.
+
+#### Attributes
+
+- `#name`, `#short`, `#long`, `#desc`, `#required_flag`, `#type`: Read-only attributes
+
+#### Methods
+
+- `#validate(&block)`: Add a validator (block receives a string, returns `nil` on success or an error message on failure). Returns `self` for chaining.
+- `#process(value)`: Run all validators and perform type conversion. Raises `ArgumentError` on validation failure.
+
+**Example:**
+
+```ruby
+opt = SimpleOptions::Option.new(:port, desc: 'Port number', type: :integer)
              .validate { |v| (1..65535).cover?(v.to_i) ? nil : 'Port must be between 1 and 65535' }
-             .convert(&:to_i)
 
-opt.process('8080')  # => 8080
-opt.process('99999') # => raises ArgumentError, "Port must be between 1 and 65535 for -p or --port option"
+opt.process('8080')  # => 8080 (Integer)
+opt.process('99999') # => raises ArgumentError
 ```
 
-### Options
+### SimpleOptions::Options
 
-Collects options, parses an argument array, and provides access to parsed values.
+Collects options, parses command-line arguments, and provides access to parsed values.
 
-| Method | Description |
-|--------|-------------|
-| `Options.new(description: '')` | Creates a parser. `description` is shown above usage in help. |
-| `#add(option)` | Registers an `Option`. |
-| `#parse!(argv)` | Parses `argv` (defaults to `ARGV` when omitted). If `-h` or `--help` is present, prints help and exits 0. Missing required options or validation failures print an error to stderr and exit 1. Parsed values are stored by option name. |
-| `#get(name)` | Returns the parsed value for the option named `name` (Symbol), or `nil` if not given. |
-| `#show_help` | Prints description, usage line, and all flags (short/long and description). |
-
-**Behavior**
-
-- Each option expects the next argument as its value (e.g. `--length 10`).
-- Help is built from the options you add; `-h` / `--help` are handled automatically.
-- Validators return `nil` on success or an error message string on failure; failed validation raises `ArgumentError` with a message like `"Please input positive number for -l or --length option"`. `parse!` catches it, prints `Error: <message>` to stderr, and exits 1.
-
-## Usage examples
-
-### Required and optional options
+#### Constructor
 
 ```ruby
-opts = Options.new(description: 'Greeter')
-opts.add Option.new(:name, short: '-n', long: '--name', desc: 'Your name', required: true)
-opts.add Option.new(:times, short: '-t', long: '--times', desc: 'Repeat N times').convert(&:to_i)
-opts.parse!
-name = opts.get(:name)       # required; parse! would have exited if missing
-times = opts.get(:times) || 1
+Options.new(program_name: nil, description: nil)
 ```
 
-### Validation and conversion
+- `program_name` (String): Program name (defaults to executable name if omitted)
+- `description` (String): Program description
+
+#### Type-specific methods (recommended)
+
+Concise methods for defining options:
 
 ```ruby
-Option.new(:size, short: '-s', long: '--size', desc: 'Size (s/m/l)',
-           validate: ->(v) { %w[s m l].include?(v) ? nil : 'Size must be one of s/m/l' })
-      .convert(&:upcase)
+# Integer type
+parser.integer(:count, desc: 'Count', short: '', long: '', required: false, default: nil)
+
+# Boolean type
+parser.boolean(:verbose, desc: 'Verbose mode', short: '', long: '', required: false, default: nil)
+
+# Number type (integer or float)
+parser.number(:ratio, desc: 'Ratio', short: '', long: '', required: false, default: nil)
+
+# String type
+parser.string(:name, desc: 'Name', short: '', long: '', required: false, default: nil)
+
+# Generic (type can be specified)
+parser.option(:port, desc: 'Port', type: :integer, short: '', long: '', required: false, default: nil)
 ```
 
-### Short-only or long-only
+**Omitting default values:**
+- When `default` is omitted, type-specific defaults are used:
+  - `integer`: `0`
+  - `boolean`: `false`
+  - `number`: `0`
+  - `string`: `''`
+  - `option`: `nil`
+
+#### Other methods
+
+- `#add(option)`: Register an `Option` object directly
+- `#parse(argv = nil)`: Parse arguments (defaults to `ARGV`). If `-h`/`--help` is present, displays help and exits
+- `#get(name)`: Get parsed value (Symbol). Returns default value if flag not specified
+- `#show_help`: Display help
+
+#### Automatic support features
+
+1. **`-h` / `--help` support**: Automatically displays help and exits
+2. **Unspecified flag handling**: Returns default value (including `nil`)
+3. **Error handling**: Displays error message and exits on missing required options or validation failures
+
+## Detailed usage examples
+
+### 1. Basic usage (name and desc only)
+
+When `short` and `long` are omitted, `-name` is automatically used:
 
 ```ruby
-Option.new(:verbose, short: '', long: '--verbose', desc: 'Verbose output')
-Option.new(:x, short: '-x', long: '', desc: 'Enable X')
+parser = SimpleOptions::Options.new(
+  program_name: 'myapp',
+  description: 'My awesome application'
+)
+
+# Specify only name and desc
+parser.string(:input, desc: 'Input file')
+parser.boolean(:verbose, desc: 'Verbose output')
+
+parser.parse
+# Can be used like: -input file.txt -verbose
 ```
 
-## Example scripts
+### 2. Type support
+
+#### Integer type
+
+```ruby
+parser.integer(:port, desc: 'Port number', default: 8080)
+parser.parse(%w[-port 3000])
+parser.get(:port)  # => 3000 (Integer)
+```
+
+#### Number type (flexible numeric support)
+
+The `number` type supports both integers and floating-point numbers:
+
+```ruby
+parser.number(:ratio, desc: 'Ratio value')
+parser.parse(%w[-ratio 3.14])
+parser.get(:ratio)  # => 3.14 (Float)
+
+parser.parse(%w[-ratio 42])
+parser.get(:ratio)  # => 42 (Integer when no decimal point)
+```
+
+**Number type features:**
+- Integer format (`42`) → Converted to `Integer`
+- Floating-point format (`3.14`) → Converted to `Float`
+- Automatically selects the appropriate type
+
+#### Boolean type
+
+```ruby
+parser.boolean(:debug, desc: 'Enable debug mode')
+
+# Accepts the following values
+parser.parse(%w[-debug true])   # => true
+parser.parse(%w[-debug false])  # => false
+parser.parse(%w[-debug yes])    # => true
+parser.parse(%w[-debug no])     # => false
+parser.parse(%w[-debug 1])      # => true
+parser.parse(%w[-debug 0])      # => false
+
+# Defaults to true when value is omitted
+parser.parse(%w[-debug])        # => true
+```
+
+#### String type
+
+```ruby
+parser.string(:name, desc: 'User name', default: 'Guest')
+parser.parse(%w[-name Alice])
+parser.get(:name)  # => "Alice" (String)
+```
+
+### 3. Setting program_name and description
+
+Reflected in help display:
+
+```ruby
+parser = SimpleOptions::Options.new(
+  program_name: 'mytool',
+  description: 'A tool for processing data'
+)
+
+parser.string(:file, desc: 'Input file')
+parser.show_help
+```
+
+**Output:**
+```
+mytool
+
+A tool for processing data
+
+Usage:
+  mytool [flags]
+
+Flags:
+  -file                     Input file
+```
+
+### 4. Required options and default values
+
+```ruby
+parser = SimpleOptions::Options.new(description: 'Data processor')
+
+# Required option
+parser.string(:input, desc: 'Input file', required: true)
+
+# Options with default values
+parser.integer(:threads, desc: 'Number of threads', default: 4)
+parser.string(:output, desc: 'Output file', default: 'output.txt')
+
+parser.parse
+
+# If required option is not specified, displays error message and exits
+# Options with default values return the default when not specified
+```
+
+### 5. Unspecified flag behavior
+
+```ruby
+parser = SimpleOptions::Options.new
+parser.integer(:count, desc: 'Count', default: 10)
+parser.string(:name, desc: 'Name')  # No default value
+
+parser.parse([])  # No arguments
+
+parser.get(:count)  # => 10 (default value)
+parser.get(:name)   # => "" (string type default)
+```
+
+### 6. Custom validation
+
+```ruby
+parser = SimpleOptions::Options.new
+opt = parser.option(:size, desc: 'Size (s/m/l)', type: :string)
+opt.validate { |v| %w[s m l].include?(v) ? nil : 'Size must be one of s/m/l' }
+
+parser.parse(%w[-size m])   # OK
+parser.parse(%w[-size xl])  # Error: Size must be one of s/m/l
+```
+
+### 7. Explicit short and long flag specification
+
+```ruby
+parser = SimpleOptions::Options.new
+
+# Specify both short and long
+parser.integer(:verbose, desc: 'Verbosity level', short: '-v', long: '--verbose')
+
+# Short only
+parser.boolean(:debug, desc: 'Debug mode', short: '-d', long: '')
+
+# Long only
+parser.string(:config, desc: 'Config file', short: '', long: '--config')
+
+parser.parse(%w[-v 2 -d --config app.yml])
+```
+
+### 8. Automatic help support
+
+```ruby
+parser = SimpleOptions::Options.new(
+  program_name: 'calculator',
+  description: 'Simple calculator'
+)
+parser.integer(:add, desc: 'Add numbers')
+parser.integer(:multiply, desc: 'Multiply numbers')
+
+# When -h or --help is specified, displays help without parsing other options
+# Even if required options are missing, displays help without error
+parser.parse(%w[-h])  # Displays help and exits
+```
+
+## Practical example code
+
+### Todo list manager
+
+Demonstrates the composition pattern:
+
+```ruby
+# examples/todo.rb
+require 'simple-cli-options'
+
+parser = SimpleOptions::Options.new(
+  program_name: 'todo',
+  description: 'A simple todo list manager'
+)
+
+# Concise definition with only name and desc
+parser.boolean(:list, desc: 'Show list of todos')
+parser.string(:add, desc: 'Add a new todo item')
+parser.integer(:delete, desc: 'Delete todo by ID')
+
+parser.parse
+
+if parser.get(:list)
+  # List display logic
+elsif parser.get(:add)
+  # Add logic
+elsif parser.get(:delete)
+  # Delete logic
+end
+```
+
+**Usage examples:**
+```bash
+ruby examples/todo.rb -h              # Show help
+ruby examples/todo.rb -list           # Show todo list
+ruby examples/todo.rb -add "Buy milk" # Add new task
+ruby examples/todo.rb -delete 3       # Delete task with ID=3
+```
+
+### Calculator (demonstrates Number type flexibility)
+
+```ruby
+# examples/calculator.rb
+parser = SimpleOptions::Options.new(
+  program_name: 'calculator',
+  description: 'Simple calculator with flexible number support'
+)
+
+# Number type supports both integers and floats
+parser.number(:add, desc: 'Add two numbers')
+parser.number(:multiply, desc: 'Multiply two numbers')
+parser.integer(:power, desc: 'Raise to power (integer only)')
+
+parser.parse
+```
+
+**Usage examples:**
+```bash
+ruby examples/calculator.rb -add 3.14      # Float input
+ruby examples/calculator.rb -add 42        # Integer input
+ruby examples/calculator.rb -multiply 2.5  # Multiplication
+ruby examples/calculator.rb -power 2       # Power (integer only)
+```
+
+### Additional examples
 
 | File | Description |
 |------|-------------|
-| [examples/paint_calculator.rb](examples/paint_calculator.rb) | Room dimensions via `-l`/`--length` and `-w`/`--width`; computes area and gallons of paint. |
-| [examples/greet.rb](examples/greet.rb) | Simple greeter using `--name` and optional `--count`. |
-
-Run an example (from project root):
-
-```bash
-ruby examples/paint_calculator.rb --length 10 --width 5
-ruby examples/greet.rb --name World --count 2
-```
+| [examples/todo.rb](examples/todo.rb) | Todo list manager. Demonstrates concise definition with name and desc only |
+| [examples/calculator.rb](examples/calculator.rb) | Calculator. Shows Number type flexibility (integer/float) |
+| [examples/paint_calculator.rb](examples/paint_calculator.rb) | Calculate paint amount from room dimensions |
+| [examples/greet.rb](examples/greet.rb) | Simple greeting tool |
 
 ## Development
 
